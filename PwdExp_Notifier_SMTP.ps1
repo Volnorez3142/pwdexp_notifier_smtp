@@ -7,7 +7,6 @@
 # }
 #}
 
-
 #CHECKING AND CREATING THE NECESSARY DIRECTORIES, STARTING THE LOG
 $test3142dir = Test-Path C:\by3142
 $testpwnotifierdir = Test-Path C:\by3142\PasswordNotifier
@@ -78,9 +77,6 @@ SYSTEM ADMINISTRATORS WILL NEVER ASK YOUR PASSWORD OR SEND YOU A QR CODE." `
 }
 
 #STOPPING THE TRANSCRIPT AND CLEARING THE VARIABLES
-Stop-Transcript
-Remove-Variable credentials,smtplogin,smtppw,users,pso,pwmaxage,setdate,exp,daysleft
-
 Write-Output "
 ___.           ________  ____   _____ ________  
 \_ |__ ___.__. \_____  \/_   | /  |  |\_____  \ 
@@ -89,3 +85,5 @@ ___.           ________  ____   _____ ________
  |___  / ____| /______  /|___\____   |\_______ \
      \/\/             \/          |__|        \/ 
                         "
+Stop-Transcript
+Remove-Variable credentials,smtplogin,smtppw,users,pso,pwmaxage,setdate,exp,daysleft
