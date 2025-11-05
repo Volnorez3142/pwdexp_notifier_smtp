@@ -38,42 +38,40 @@ $smtpport = 587
 
 #PARSING ALL THE ACTIVE USERS, SETTING THE NECESSARY VARIABLES
 Import-Module ActiveDirectory
-$users = Get-ADUser -Filter * -Properties UserPrincipalName,pwdLastSet,PasswordNeverExpires,DistinguishedName | Where { $_.Enabled -eq $True}
-$vardistinguishedname = "OU=Sakurada Space,OU=Volnorez,DC=sakurada,DC=lan"
+$vardistinguishedname = "*OU=Sakurada Space,OU=Volnorez,DC=sakurada,DC=lan"
+$users = Get-ADUser -Filter * -Properties UserPrincipalName,pwdLastSet,PasswordNeverExpires,DistinguishedName | Where { ($_.Enabled -eq $True) -and ($_.DistinguishedName -like $vardistinguishedname) }
 
 #CHECKING HOW MANY DAYS THERE IS LEFT TILL THE PASSWORD EXPIRES AND NOTIFYING THE USER
 $users | ForEach-Object {
-    if ($_.DistinguishedName -like "*$vardistinguishedname") {
-        Write-Host "=======================" -ForegroundColor Cyan
-        $pso = Get-ADUserResultantPasswordPolicy -Identity $_.SamAccountName -ErrorAction SilentlyContinue
-        $pwmaxage = if ($pso) { 
-            $pso.MaxPasswordAge
-        } else {
-            (Get-ADDomain).MaxPasswordAge
-        }
-        $setdate = [DateTime]::FromFileTimeUtc([int64]$_.pwdLastSet)
-        $exp = $setdate + $pwmaxage
-        $daysleft = [math]::Floor(($exp.ToLocalTime() - (Get-Date)).TotalDays)
-        Write-Host "Checking $($_.Name)..."
-        Write-Host "Password expiration date:   $($exp.ToLocalTime())"
-        Write-Host "Therefore there's           $daysleft days left."
+    Write-Host "=======================" -ForegroundColor Cyan
+    $pso = Get-ADUserResultantPasswordPolicy -Identity $_.SamAccountName -ErrorAction SilentlyContinue
+    $pwmaxage = if ($pso) { 
+        $pso.MaxPasswordAge
+    } else {
+        (Get-ADDomain).MaxPasswordAge
+    }
+    $setdate = [DateTime]::FromFileTimeUtc([int64]$_.pwdLastSet)
+    $exp = $setdate + $pwmaxage
+    $daysleft = [math]::Floor(($exp.ToLocalTime() - (Get-Date)).TotalDays)
+    Write-Host "Checking $($_.Name)..."
+    Write-Host "Password expiration date:   $($exp.ToLocalTime())"
+    Write-Host "Therefore there's           $daysleft days left."
 
-        if (($daysleft -le 10) -and ($daysleft -gt -1)) {
-            Write-Host "Sending email to $($_.UserPrincipalName)..." -ForegroundColor DarkGreen
-            Send-MailMessage -To $_.UserPrincipalName `
-                 -From $smtplogin `
-                 -Subject "Password Expiration" `
-                 -Body "$($_.Name), your password will expire in $daysLeft days!
+    if (($daysleft -le 10) -and ($daysleft -gt -1)) {
+        Write-Host "Sending email to $($_.UserPrincipalName)..." -ForegroundColor DarkGreen
+        Send-MailMessage -To $_.UserPrincipalName `
+             -From $smtplogin `
+             -Subject "Password Expiration" `
+             -Body "$($_.Name), your password will expire in $daysLeft days!
 Please change it in your Microsoft account settings to prevent your user from getting locked.
 Link: https://mysignins.microsoft.com/security-info/password/change `n`
 THIS IS AN AUTOMATED EMAIL.
 SYSTEM ADMINISTRATORS WILL NEVER ASK YOUR PASSWORD OR SEND YOU A QR CODE." `
-                 -SmtpServer $smtpserver `
-                 -Port $smtpport `
-                 -Credential $credentials `
-                 -UseSsl
-        }
-    }
+             -SmtpServer $smtpserver `
+             -Port $smtpport `
+             -Credential $credentials `
+             -UseSsl
+     }
 }
 
 #STOPPING THE TRANSCRIPT AND CLEARING THE VARIABLES
